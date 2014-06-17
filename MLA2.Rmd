@@ -1,0 +1,84 @@
+Course Project 1 - predict exercise
+========================================================
+### 1.  Read raw data
+
+```{r}
+DT <- read.csv("pml-training.csv",stringsAsFactors=F)
+TEST <- read.csv("pml-testing.csv",stringsAsFactors=F)
+```
+```{r}
+dim(DT)
+dim(TEST)
+names(DT)
+```
+
+### 2. Change variables to the approprite type 
+```{r warning=FALSE}
+for(i in 7:159){
+  DT[,i] <- as.numeric(DT[,i])
+  TEST[,i] <- as.numeric(TEST[,i])
+}
+DT$classe <- factor(DT$classe)
+```
+
+### 3. Remove unrelated variables (user_name,timestamp,...)
+```{r warning=FALSE}
+DT <- DT[,-(1:7)]
+TEST <- TEST[,-(1:7)]
+```
+
+### 4. Check valid data proportion
+```{r warning=FALSE}
+nna <- sort(sapply(DT[,],function(x)mean(!is.na(x))))
+nna
+```
+
+### 5. Select data-rich variables
+```{r warning=FALSE}
+sel <- names(nna)[nna>0.5]
+DT <- DT[,sel]
+sel1 <- setdiff(sel,"classe")
+TEST <- TEST[,sel1]
+```
+
+### 6. Data Partition
+```{r warning=FALSE}
+library(caret)
+set.seed(8888)
+ss <- createDataPartition(y=DT$classe, p = 0.7, list=F)
+tr <- DT[ss,]
+tst <- DT[-ss,]
+```
+
+### 7. See tree model (Poor Accuracy)
+```{r warning=FALSE}
+library(rpart)
+set.seed(123)
+m_tree <- train(classe~., data= tr, method="rpart")
+m_tree_ptst <- predict(m_tree,tst)
+confusionMatrix(m_tree_ptst, tst$classe)
+```
+### 8. See lda model -- (Medium Accuracy)
+```{r warning=FALSE}
+set.seed(123)
+m_lda <- train(classe~., data= tr, method="lda")
+m_lda_ptst <- predict(m_lda,tst)
+confusionMatrix(m_lda_ptst, tst$classe)
+```
+
+### 9. See svm model -- (High Accuracy)
+```{r warning=FALSE}
+library(e1071)
+set.seed(123)
+m_svm <- svm(classe~. , data = tr)
+m_svm_ptst <- predict(m_svm,tst)
+confusionMatrix(m_svm_ptst, tst$classe)
+```
+
+### 10. Calc Result using svm model
+```{r warning=FALSE}
+result <- predict(m_svm, TEST)
+result
+```
+
+
